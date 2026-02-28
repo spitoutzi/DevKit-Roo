@@ -174,6 +174,7 @@ devkit status
     devkit advance
     devkit coverage
     devkit dashboard
+    devkit brief
     devkit generate-constitution
     devkit impact "..."
     devkit rfc "..."
@@ -285,7 +286,7 @@ devkit generate-constitution
      ADR decisions:        2
      Output: .devkit/arch/constitution.md
 
-  Run "devkit sync" to copy to .specify/constitution.md
+  Run "devkit sync" to transform and sync to .specify/memory/constitution.md
 ```
 
 **Источники:**
@@ -298,7 +299,7 @@ devkit generate-constitution
 
 ### `devkit sync` — Синхронизация конституции
 
-Копирует `constitution.md` из `.devkit/arch/` в `.specify/` для использования SpecKit.
+Трансформирует `constitution.md` из DevKit-формата (инварианты) в spec-kit формат (Core Principles) и записывает в `.specify/memory/constitution.md`.
 
 ```bash
 devkit sync
@@ -309,7 +310,7 @@ devkit sync
 🔄 Sync Constitution
 
   ✅ Synced!
-     .devkit/arch/constitution.md → .specify/constitution.md
+     .devkit/arch/constitution.md → .specify/memory/constitution.md
 ```
 
 ---
@@ -683,6 +684,42 @@ devkit inject --force   # переписать даже если хуки акт
   All speckit commands already up-to-date.
 ```
 
+---
+
+### `devkit brief` — Индекс проекта для AI-агентов
+
+Генерирует `.devkit/BRIEF.md` — компактный индекс проекта (~60-100 строк), который AI-агент читает в начале сессии для получения актуального контекста.
+
+```bash
+devkit brief              # генерирует .devkit/BRIEF.md
+devkit brief --stdout     # вывод в консоль
+```
+
+**Вывод:**
+```
+📄 Project Brief
+
+  ✅ Generated: .devkit/BRIEF.md
+     Invariants: 8 tech + 6 UX
+     Open items: 0
+     Lines: 62
+
+  AI agents should read this file at session start.
+  Regenerate anytime: devkit brief
+```
+
+**Что содержит BRIEF.md:**
+- Текущая фаза и прогресс
+- Все инварианты (ID + одна строка) — не полное описание
+- Открытые RFC / INV / ESC
+- Недавние решения (последние 5)
+- Структура проекта
+- Доступные команды devkit и npm scripts
+
+**Идея:** Agent-specific файлы (`CLAUDE.md`, `.gemini/`) ссылаются на `BRIEF.md`, а не дублируют информацию. Один brief, много потребителей.
+
+---
+
 **Какие хуки инжектятся:**
 
 | Команда | Хук | Что делает |
@@ -714,10 +751,11 @@ devkit advance                          # перейти к ProductKit
 # → Работа через /product-kit
 devkit advance                          # → ArchKit
 devkit generate-constitution            # собрать конституцию
-devkit sync                             # → .specify/
+devkit sync                             # → .specify/memory/
 # → Работа через /speckit.specify, /speckit.plan, /speckit.tasks ...
 #   (speckit-команды теперь DevKit-aware: impact, validate, coverage)
 devkit coverage                         # проверить покрытие
+devkit brief                            # сгенерировать индекс для AI-агентов
 devkit dashboard                        # открыть веб-панель
 ```
 
@@ -804,7 +842,8 @@ AI в процессе диалога распознаёт тип события
       ESC-XXX.md          ← история QA эскалаций
 
 .specify/                 ← github/spec-kit (не редактировать вручную)
-  constitution.md         ← OWNED BY ArchKit, не редактировать
+  memory/
+    constitution.md       ← OWNED BY ArchKit, не редактировать
 
 .claude/commands/         ← speckit slash-команды с DevKit-хуками
   speckit.specify.md      ← /speckit.specify + invariant-guard
