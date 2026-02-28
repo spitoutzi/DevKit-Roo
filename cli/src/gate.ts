@@ -1,6 +1,7 @@
-import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Phase } from './status.js';
+import { PHASE_LABELS } from './utils.js';
 
 export interface GateCondition {
     description: string;
@@ -156,6 +157,15 @@ function checkArchGate(devkitDir: string): GateCondition[] {
         satisfied: existsSync(constPath),
     });
 
+    // spec-kit initialized (scripts/ directory exists)
+    const specKitScripts = join(cwd, '.specify', 'scripts');
+    const specKitInitialized = existsSync(specKitScripts);
+    conditions.push({
+        description: 'spec-kit initialized (.specify/scripts/)',
+        satisfied: specKitInitialized,
+        detail: !specKitInitialized ? 'Run "specify init . --ai claude" to initialize spec-kit' : undefined,
+    });
+
     // Constitution synced to spec-kit path
     const specKitConst = join(cwd, '.specify', 'memory', 'constitution.md');
     conditions.push({
@@ -187,8 +197,8 @@ function checkSpecGate(devkitDir: string): GateCondition[] {
     if (existsSync(specsDir)) {
         const featureDirs = readdirSync(specsDir).filter(f => {
             try {
-                const stat = readdirSync(join(specsDir, f));
-                return stat.length > 0; // has files inside
+                const fullPath = join(specsDir, f);
+                return statSync(fullPath).isDirectory() && readdirSync(fullPath).length > 0;
             } catch { return false; }
         });
         conditions.push({
@@ -295,14 +305,7 @@ export function checkGate(cwd: string, currentPhase: Phase): GateResult {
     };
 }
 
-const PHASE_LABELS: Record<Phase | 'production', string> = {
-    research: 'ResearchKit',
-    product: 'ProductKit',
-    arch: 'ArchKit',
-    spec: 'SpecKit',
-    qa: 'QAKit',
-    production: 'Production',
-};
+
 
 export function formatGate(result: GateResult): string {
     const lines: string[] = [];

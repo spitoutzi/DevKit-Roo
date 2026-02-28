@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { getNextId, extractKeywords } from './utils.js';
 
 export interface InvestigationResult {
     created: boolean;
@@ -9,21 +10,6 @@ export interface InvestigationResult {
     adrSource: string | null;
     invariantsAtRisk: string[];
     error?: string;
-}
-
-function getNextId(dir: string, prefix: string): string {
-    if (!existsSync(dir)) return `${prefix}001`;
-
-    const files = readdirSync(dir)
-        .filter(f => f.startsWith(prefix) && f.endsWith('.md'));
-
-    let maxNum = 0;
-    for (const f of files) {
-        const m = f.match(new RegExp(`${prefix}(\\d+)`));
-        if (m) maxNum = Math.max(maxNum, parseInt(m[1]!, 10));
-    }
-
-    return `${prefix}${(maxNum + 1).toString().padStart(3, '0')}`;
 }
 
 function findBrokenAssumption(
@@ -99,11 +85,7 @@ export function createInvestigation(cwd: string, description: string): Investiga
     mkdirSync(decisionsDir, { recursive: true });
 
     // Extract keywords
-    const keywords = description
-        .toLowerCase()
-        .split(/[\s,;]+/)
-        .filter(w => w.length > 2)
-        .filter(w => !['the', 'and', 'for', 'with', 'from', 'that', 'this', 'into', 'bug', 'found', 'does', 'not'].includes(w));
+    const keywords = extractKeywords(description);
 
     // Try to find broken assumption in ADRs
     const broken = findBrokenAssumption(cwd, keywords);
@@ -211,8 +193,20 @@ export function listInvestigations(cwd: string): { id: string; title: string; st
 }
 
 export function resolveInvestigation(cwd: string, invId: string, option: string, rationale: string): { resolved: boolean; error?: string } {
+    // Validate ID: only alphanumeric characters and hyphens allowed
+    if (!/^[A-Za-z0-9-]+$/.test(invId)) {
+        return { resolved: false, error: `Invalid Investigation ID "${invId}": only alphanumeric characters and hyphens are allowed.` };
+    }
+
     const decisionsDir = join(cwd, '.devkit', 'arch', 'decisions');
     const filePath = join(decisionsDir, `${invId}.md`);
+
+    // Verify resolved path stays within decisionsDir (defense-in-depth)
+    const resolvedDecisionsDir = resolve(decisionsDir);
+    const resolvedFilePath = resolve(filePath);
+    if (!resolvedFilePath.startsWith(resolvedDecisionsDir + '/')) {
+        return { resolved: false, error: `Invalid Investigation ID "${invId}": path traversal detected.` };
+    }
 
     if (!existsSync(filePath)) {
         return { resolved: false, error: `${invId}.md not found in .devkit/arch/decisions/` };

@@ -1,16 +1,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Phase } from './status.js';
-
-const PHASE_ORDER: Phase[] = ['research', 'product', 'arch', 'spec', 'qa'];
-
-const PHASE_LABELS: Record<Phase, string> = {
-    research: 'ResearchKit',
-    product: 'ProductKit',
-    arch: 'ArchKit',
-    spec: 'SpecKit',
-    qa: 'QAKit',
-};
+import { PHASE_ORDER, PHASE_LABELS } from './utils.js';
 
 export interface AdvanceResult {
     advanced: boolean;

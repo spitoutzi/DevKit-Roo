@@ -45,5 +45,5 @@ STATEMENT: Конституция сгенерированная DevKit (инв�
 BASIS: spec-kit описывает constitution.md без жёсткого формата
 RISK: high
 VALIDATION_METHOD: сгенерировать constitution DevKit-ом, запустить spec-kit workflow
-STATUS: invalidated
-FINDING: НЕСОВМЕСТИМО. DevKit пишет в `.specify/constitution.md` (инварианты I1-I8, UX U1-U6). spec-kit ожидает `.specify/memory/constitution.md` с "Core Principles" (декларативные MUST/SHOULD), semver, governance section. Нужен трансформер или dual-format. См. INV-002.
+STATUS: invalidated → resolved
+FINDING: НЕСОВМЕСТИМО. DevKit писал в `.specify/constitution.md` (инварианты I1-I8, UX U1-U6). spec-kit ожидает `.specify/memory/constitution.md` с "Core Principles" (декларативные MUST/SHOULD), semver, governance section. РЕШЕНИЕ (INV-002, Option A): построен трансформер в `constitution.ts` (`transformToSpecKitFormat`), `devkit sync` теперь пишет в `.specify/memory/constitution.md` в формате spec-kit principles. Gate L3→L4 проверяет наличие spec-kit и формат конституции.

@@ -1,0 +1,31 @@
+{
+  "timestamp": "2026-02-19T21:30:43.181Z",
+  "phase": "qa",
+  "files": {
+    "STATUS.md": "f13ba32bc649",
+    "arch/constitution.md": "d06f6bd7cce3",
+    "arch/decisions/INV-001.md": "3d4df414ce96",
+    "arch/decisions/INV-002.md": "3b9116015a70",
+    "arch/decisions/RFC-001.md": "d9ce67af218a",
+    "arch/impact.md": "95a00879b681",
+    "arch/invariants.md": "20b03b50c5a8",
+    "product/roadmap.md": "4475a28a30f0",
+    "product/users.md": "0956578c47fe",
+    "product/ux_invariants.md": "99730d72fcb5",
+    "qa/assumption_checks.md": "b84a3715d4fa",
+    "qa/coverage_map.md": "2e59b9408eff",
+    "qa/escalations/ESC-001.md": "2101c5834b62",
+    "qa/test_contracts.md": "07d6fb36afe0",
+    "research/assumptions.md": "1bbc2643607f",
+    "research/feasibility.md": "24f827b08dcb",
+    "research/market.md": "d4278409e5ed",
+    "research/unknowns.md": "d91b8d04a09e"
+  },
+  "invariantCount": 8,
+  "uxInvariantCount": 6,
+  "adrCount": 0,
+  "rfcCount": 1,
+  "invCount": 2,
+  "escCount": 1,
+  "coveragePercent": 100
+}

@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { analyzeCoverage } from './coverage.js';
 
@@ -114,8 +114,47 @@ export function listSnapshots(cwd: string): string[] {
 }
 
 export function loadSnapshot(cwd: string, fileName: string): Snapshot {
-    const filePath = join(cwd, '.devkit', '.snapshots', fileName);
-    return JSON.parse(readFileSync(filePath, 'utf-8'));
+    // Validate filename: only safe characters allowed, must end with .json
+    if (!/^[A-Za-z0-9_\-]+\.json$/.test(fileName)) {
+        throw new Error(`Invalid snapshot filename "${fileName}": only alphanumeric, hyphens, and underscores are allowed.`);
+    }
+
+    const dir = join(cwd, '.devkit', '.snapshots');
+    const filePath = join(dir, fileName);
+
+    // Defense-in-depth: verify resolved path stays within snapshots directory
+    const resolvedDir = resolve(dir);
+    const resolvedPath = resolve(filePath);
+    if (!resolvedPath.startsWith(resolvedDir + '/')) {
+        throw new Error(`Invalid snapshot filename "${fileName}": path traversal detected.`);
+    }
+
+    let raw: string;
+    try {
+        raw = readFileSync(filePath, 'utf-8');
+    } catch (err) {
+        throw new Error(`Cannot read snapshot "${fileName}": ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(raw);
+    } catch (err) {
+        throw new Error(`Snapshot "${fileName}" contains invalid JSON: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    // Validate required Snapshot fields
+    if (
+        typeof parsed !== 'object' || parsed === null ||
+        typeof (parsed as Record<string, unknown>).timestamp !== 'string' ||
+        typeof (parsed as Record<string, unknown>).phase !== 'string' ||
+        typeof (parsed as Record<string, unknown>).files !== 'object' ||
+        (parsed as Record<string, unknown>).files === null
+    ) {
+        throw new Error(`Snapshot "${fileName}" has invalid structure: missing required fields (timestamp, phase, files).`);
+    }
+
+    return parsed as Snapshot;
 }
 
 export function diffSnapshots(from: Snapshot, to: Snapshot): DiffResult {

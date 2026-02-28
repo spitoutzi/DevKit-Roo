@@ -71,4 +71,30 @@ describe('checkGate', () => {
         expect(result.allowed).toBe(true);
         expect(result.nextPhase).toBe('arch');
     });
+
+    it('blocks arch gate when spec-kit not initialized', () => {
+        // Constitution exists but no .specify/scripts/
+        writeFileSync(join(TEST_DIR, '.devkit', 'arch', 'invariants.md'),
+            '# Technical Invariants\n\n## I1: Test\nSTATEMENT: test\nSTATUS: verified\n');
+        writeFileSync(join(TEST_DIR, '.devkit', 'arch', 'constitution.md'), '# Constitution\n');
+
+        const result = checkGate(TEST_DIR, 'arch');
+        expect(result.allowed).toBe(false);
+        expect(result.conditions.some(c => !c.satisfied && c.description.includes('spec-kit initialized'))).toBe(true);
+    });
+
+    it('allows arch gate when all conditions met', () => {
+        writeFileSync(join(TEST_DIR, '.devkit', 'arch', 'invariants.md'),
+            '# Technical Invariants\n\n## I1: Test\nSTATEMENT: test\nSTATUS: verified\n');
+        writeFileSync(join(TEST_DIR, '.devkit', 'arch', 'constitution.md'), '# Constitution\n');
+        // spec-kit initialized
+        mkdirSync(join(TEST_DIR, '.specify', 'scripts'), { recursive: true });
+        // Constitution synced
+        mkdirSync(join(TEST_DIR, '.specify', 'memory'), { recursive: true });
+        writeFileSync(join(TEST_DIR, '.specify', 'memory', 'constitution.md'), '# Constitution\n');
+
+        const result = checkGate(TEST_DIR, 'arch');
+        expect(result.allowed).toBe(true);
+        expect(result.nextPhase).toBe('spec');
+    });
 });

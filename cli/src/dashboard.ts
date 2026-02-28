@@ -5,14 +5,9 @@ import { analyzeCoverage } from './coverage.js';
 import { listRfcs } from './rfc.js';
 import { listInvestigations } from './investigate.js';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'));
-const VERSION = pkg.version as string;
-
-export function startDashboard(cwd: string, port: number): void {
+export function startDashboard(cwd: string, port: number, version: string): void {
   const server = createServer((req, res) => {
     if (req.url === '/api/data') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -21,13 +16,21 @@ export function startDashboard(cwd: string, port: number): void {
     }
 
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(generateHtml());
+    res.end(generateHtml(version));
   });
 
   server.listen(port, () => {
     console.log(`\n🌐 Dashboard running at http://localhost:${port}\n`);
     console.log(`   Press Ctrl+C to stop.\n`);
   });
+
+  function shutdown() {
+    console.log('\n  Shutting down dashboard...');
+    server.close();
+    process.exit(0);
+  }
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
 }
 
 function collectData(cwd: string) {
@@ -76,7 +79,7 @@ function collectData(cwd: string) {
   };
 }
 
-function generateHtml(): string {
+function generateHtml(version: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -275,7 +278,7 @@ function generateHtml(): string {
 <body>
   <div class="header">
     <h1>⬡ DevKit Dashboard</h1>
-    <span class="version">v${VERSION}</span>
+    <span class="version">v${version}</span>
     <span class="refresh" id="refresh-time">Loading...</span>
   </div>
 
@@ -291,6 +294,16 @@ async function loadData() {
   const res = await fetch('/api/data');
   const data = await res.json();
   render(data);
+}
+
+function esc(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function render(d) {
@@ -309,46 +322,46 @@ function render(d) {
   }).join('<span class="phase-arrow">→</span>');
 
   // Coverage color
-  const pct = d.coverage.percentage;
+  const pct = Number(d.coverage.percentage) || 0;
   const covColor = pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--yellow)' : 'var(--red)';
 
   // Coverage entries
   const covHtml = d.coverage.entries.map(e => {
-    const tests = e.coveredBy.length > 0 ? e.coveredBy.join(', ') : 'none';
-    return '<div class="cov-entry ' + e.status + '">' +
+    const tests = e.coveredBy.length > 0 ? esc(e.coveredBy.join(', ')) : 'none';
+    return '<div class="cov-entry ' + esc(e.status) + '">' +
       '<span>' + (e.status === 'covered' ? '✅' : e.status === 'partial' ? '🟡' : '❌') + '</span>' +
-      '<span>' + e.invariant + '</span>' +
+      '<span>' + esc(e.invariant) + '</span>' +
       '<span class="tests">' + tests + '</span></div>';
   }).join('') || '<div class="empty">No invariants found</div>';
 
   // RFCs
   const rfcHtml = d.rfcs.map(r => {
     const title = r.title.replace(r.id + ': ', '');
-    return '<div class="item"><span class="item-id">' + r.id + '</span>' +
-      '<span class="item-text">' + title + '</span>' +
-      '<span class="item-status ' + r.status + '">' + r.status + '</span></div>';
+    return '<div class="item"><span class="item-id">' + esc(r.id) + '</span>' +
+      '<span class="item-text">' + esc(title) + '</span>' +
+      '<span class="item-status ' + esc(r.status) + '">' + esc(r.status) + '</span></div>';
   }).join('') || '<div class="empty">No RFCs created</div>';
 
   // Investigations
   const invHtml = d.investigations.map(i => {
     const title = i.title.replace(i.id + ': ', '');
-    return '<div class="item"><span class="item-id">' + i.id + '</span>' +
-      '<span class="item-text">' + title + '</span>' +
-      '<span class="item-status ' + i.status + '">' + i.status + '</span></div>';
+    return '<div class="item"><span class="item-id">' + esc(i.id) + '</span>' +
+      '<span class="item-text">' + esc(title) + '</span>' +
+      '<span class="item-status ' + esc(i.status) + '">' + esc(i.status) + '</span></div>';
   }).join('') || '<div class="empty">No investigations</div>';
 
   // Escalations
   const escHtml = d.escalations.map(e =>
-    '<div class="item"><span class="item-id">' + e.id + '</span>' +
-    '<span class="flow-node ' + e.level + '">' + e.level + '</span>' +
-    '<span class="item-status ' + e.status + '">' + e.status + '</span></div>'
+    '<div class="item"><span class="item-id">' + esc(e.id) + '</span>' +
+    '<span class="flow-node ' + esc(e.level) + '">' + esc(e.level) + '</span>' +
+    '<span class="item-status ' + esc(e.status) + '">' + esc(e.status) + '</span></div>'
   ).join('') || '<div class="empty">No escalations</div>';
 
   // Validation errors
   const errHtml = d.validation.errorList.map(e =>
-    '<div class="error-item"><div class="error-file">' + e.file + ':' + e.line + '</div>' +
-    '<div class="error-msg">' + e.message + '</div>' +
-    '<div class="error-fix">Fix: ' + e.fix + '</div></div>'
+    '<div class="error-item"><div class="error-file">' + esc(e.file) + ':' + esc(e.line) + '</div>' +
+    '<div class="error-msg">' + esc(e.message) + '</div>' +
+    '<div class="error-fix">Fix: ' + esc(e.fix) + '</div></div>'
   ).join('') || '<div class="empty" style="color: var(--green);">✅ All artifacts valid</div>';
 
   document.getElementById('content').innerHTML =
@@ -357,19 +370,19 @@ function render(d) {
 
     // Row 2: Stats + Coverage + Validation
     '<div class="card"><div class="card-title">Overview</div><div class="stats">' +
-      '<div><div class="stat-value green">' + d.coverage.covered + '</div><div class="stat-label">Covered</div></div>' +
-      '<div><div class="stat-value yellow">' + d.coverage.partial + '</div><div class="stat-label">Partial</div></div>' +
-      '<div><div class="stat-value red">' + d.coverage.uncovered + '</div><div class="stat-label">Uncovered</div></div>' +
+      '<div><div class="stat-value green">' + esc(d.coverage.covered) + '</div><div class="stat-label">Covered</div></div>' +
+      '<div><div class="stat-value yellow">' + esc(d.coverage.partial) + '</div><div class="stat-label">Partial</div></div>' +
+      '<div><div class="stat-value red">' + esc(d.coverage.uncovered) + '</div><div class="stat-label">Uncovered</div></div>' +
     '</div></div>' +
 
     '<div class="card"><div class="card-title">Coverage</div>' +
       '<div class="coverage-pct" style="color:' + covColor + '">' + pct + '%</div>' +
       '<div class="coverage-bar-container"><div class="coverage-bar"><div class="coverage-fill" style="width:' + pct + '%; background:' + covColor + '"></div></div></div>' +
-      '<div class="stat-label">' + d.coverage.covered + ' of ' + d.coverage.total + ' invariants fully tested</div></div>' +
+      '<div class="stat-label">' + esc(d.coverage.covered) + ' of ' + esc(d.coverage.total) + ' invariants fully tested</div></div>' +
 
     '<div class="card"><div class="card-title">Validation</div>' +
-      '<div class="stat-value ' + (d.validation.errors > 0 ? 'red' : 'green') + '">' + d.validation.errors + '</div>' +
-      '<div class="stat-label">errors in ' + d.validation.total + ' artifacts</div></div>' +
+      '<div class="stat-value ' + (d.validation.errors > 0 ? 'red' : 'green') + '">' + esc(d.validation.errors) + '</div>' +
+      '<div class="stat-label">errors in ' + esc(d.validation.total) + ' artifacts</div></div>' +
 
     // Row 3: Coverage + Errors
     '<div class="card wide"><div class="card-title">Invariant Coverage Map</div><div class="items">' + covHtml + '</div></div>' +

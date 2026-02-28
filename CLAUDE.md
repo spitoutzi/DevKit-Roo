@@ -34,6 +34,7 @@ devkit snapshot          # Take .devkit/ state snapshot
 devkit diff              # Diff against last snapshot
 devkit dashboard         # Open web dashboard
 devkit inject            # Inject DevKit hooks into speckit commands
+devkit brief             # Generate .devkit/BRIEF.md for AI agents
 devkit watch             # Watch for changes and auto-validate
 ```
 
@@ -49,7 +50,7 @@ devkit watch             # Watch for changes and auto-validate
 
 ```bash
 cd cli && npm run build   # Build
-npm test                  # Run tests (vitest, 69 tests)
+npm test                  # Run tests (vitest, 77 tests)
 ```
 
 ## Key Conventions

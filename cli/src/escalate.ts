@@ -121,7 +121,7 @@ export function createEscalation(cwd: string, description: string, forceLevel?: 
 
         case 'archkit':
             lines.push('**Type**: Invariant violation or technical blocker');
-            lines.push('**Action**: Open Investigation in ArchKit (`devkit investigate "..."`')
+            lines.push('**Action**: Open Investigation in ArchKit (`devkit investigate "..."`)')
             lines.push('');
             lines.push('### Which invariant/assumption is broken');
             lines.push('');

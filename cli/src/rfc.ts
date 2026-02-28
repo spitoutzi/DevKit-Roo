@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { analyzeImpact } from './impact.js';
+import { getNextId } from './utils.js';
 
 export interface RfcResult {
     created: boolean;
@@ -10,21 +11,6 @@ export interface RfcResult {
     affectedSpecs: string[];
     riskLevel: string;
     error?: string;
-}
-
-function getNextId(dir: string, prefix: string): string {
-    if (!existsSync(dir)) return `${prefix}001`;
-
-    const files = readdirSync(dir)
-        .filter(f => f.startsWith(prefix) && f.endsWith('.md'));
-
-    let maxNum = 0;
-    for (const f of files) {
-        const m = f.match(new RegExp(`${prefix}(\\d+)`));
-        if (m) maxNum = Math.max(maxNum, parseInt(m[1]!, 10));
-    }
-
-    return `${prefix}${(maxNum + 1).toString().padStart(3, '0')}`;
 }
 
 export function createRfc(cwd: string, description: string): RfcResult {
@@ -150,8 +136,20 @@ export function listRfcs(cwd: string): { id: string; title: string; status: stri
 }
 
 export function resolveRfc(cwd: string, rfcId: string, option: string, rationale: string): { resolved: boolean; error?: string } {
+    // Validate ID: only alphanumeric characters and hyphens allowed
+    if (!/^[A-Za-z0-9-]+$/.test(rfcId)) {
+        return { resolved: false, error: `Invalid RFC ID "${rfcId}": only alphanumeric characters and hyphens are allowed.` };
+    }
+
     const decisionsDir = join(cwd, '.devkit', 'arch', 'decisions');
     const filePath = join(decisionsDir, `${rfcId}.md`);
+
+    // Verify resolved path stays within decisionsDir (defense-in-depth)
+    const resolvedDecisionsDir = resolve(decisionsDir);
+    const resolvedFilePath = resolve(filePath);
+    if (!resolvedFilePath.startsWith(resolvedDecisionsDir + '/')) {
+        return { resolved: false, error: `Invalid RFC ID "${rfcId}": path traversal detected.` };
+    }
 
     if (!existsSync(filePath)) {
         return { resolved: false, error: `${rfcId}.md not found in .devkit/arch/decisions/` };

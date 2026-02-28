@@ -72,32 +72,42 @@ function findTestMentions(cwd: string, invariantId: string, invariantName: strin
         }
     }
 
-    // Search test files in project (common patterns)
+    // Search test files in project (common patterns) — recursive up to 3 levels
     const testDirs = ['tests', 'test', '__tests__', 'spec', 'cli/tests'];
-    for (const dir of testDirs) {
-        const testDir = join(cwd, dir);
-        if (!existsSync(testDir)) continue;
 
+    function collectTestFiles(dir: string, relPrefix: string, depth: number): void {
+        if (depth > 3) return;
         try {
-            const files = readdirSync(testDir).filter(f =>
-                f.endsWith('.test.ts') || f.endsWith('.test.js') ||
-                f.endsWith('.spec.ts') || f.endsWith('.spec.js')
-            );
+            const entries = readdirSync(dir, { withFileTypes: true });
+            for (const entry of entries) {
+                const fullPath = join(dir, entry.name);
+                const relPath = relPrefix ? `${relPrefix}/${entry.name}` : entry.name;
 
-            for (const file of files) {
-                const content = readFileSync(join(testDir, file), 'utf-8');
-                // Search for invariant ID or keywords from the invariant name
-                const keywords = invariantName.toLowerCase().split(/[\s\-_:]+/).filter(w => w.length > 3);
-                const hasId = content.includes(invariantId);
-                const hasKeywords = keywords.some(kw => content.toLowerCase().includes(kw));
+                if (entry.isDirectory()) {
+                    collectTestFiles(fullPath, relPath, depth + 1);
+                } else if (
+                    entry.name.endsWith('.test.ts') || entry.name.endsWith('.test.js') ||
+                    entry.name.endsWith('.spec.ts') || entry.name.endsWith('.spec.js')
+                ) {
+                    const content = readFileSync(fullPath, 'utf-8');
+                    const keywords = invariantName.toLowerCase().split(/[\s\-_:]+/).filter(w => w.length > 3);
+                    const hasId = content.includes(invariantId);
+                    const hasKeywords = keywords.some(kw => content.toLowerCase().includes(kw));
 
-                if (hasId || hasKeywords) {
-                    mentions.push(`${dir}/${file}`);
+                    if (hasId || hasKeywords) {
+                        mentions.push(relPath);
+                    }
                 }
             }
         } catch {
             // Skip unreadable dirs
         }
+    }
+
+    for (const dir of testDirs) {
+        const testDir = join(cwd, dir);
+        if (!existsSync(testDir)) continue;
+        collectTestFiles(testDir, dir, 0);
     }
 
     return [...new Set(mentions)]; // dedupe

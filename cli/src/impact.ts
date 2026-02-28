@@ -1,5 +1,6 @@
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { extractKeywords } from './utils.js';
 
 export interface ImpactEntity {
     name: string;
@@ -97,11 +98,7 @@ export function analyzeImpact(cwd: string, description: string): ImpactResult {
     const impactPath = join(devkitDir, 'arch', 'impact.md');
 
     // Extract keywords from description
-    const keywords = description
-        .toLowerCase()
-        .split(/[\s,;]+/)
-        .filter(w => w.length > 2)
-        .filter(w => !['the', 'and', 'for', 'with', 'from', 'that', 'this', 'into', 'add', 'new', 'use'].includes(w));
+    const keywords = extractKeywords(description);
 
     if (!existsSync(impactPath)) {
         // No impact map — do best-effort analysis from invariants

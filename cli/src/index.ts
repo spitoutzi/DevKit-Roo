@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { detectProjectState } from './detector.js';
@@ -18,13 +21,18 @@ import { watchValidate } from './watch.js';
 import { startDashboard } from './dashboard.js';
 import { takeSnapshot, saveSnapshot, listSnapshots, loadSnapshot, diffSnapshots, formatDiff } from './diff.js';
 import { injectDevkitHooks } from './inject.js';
+import { generateBrief } from './brief.js';
+import { PHASE_LABELS } from './utils.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'));
 
 const program = new Command();
 
 program
     .name('devkit')
     .description('DevKit CLI — AI-Native Development Methodology')
-    .version('0.8.0');
+    .version(pkg.version);
 
 // ────────────────────────────── INIT ──────────────────────────────
 program
@@ -291,12 +299,7 @@ program
             return;
         }
 
-        const LABELS: Record<Phase, string> = {
-            research: 'ResearchKit', product: 'ProductKit', arch: 'ArchKit',
-            spec: 'SpecKit', qa: 'QAKit',
-        };
-
-        console.log(chalk.green(`  ✅ Advanced: ${LABELS[result.from]} → ${LABELS[result.to]}`));
+        console.log(chalk.green(`  ✅ Advanced: ${PHASE_LABELS[result.from]} → ${PHASE_LABELS[result.to]}`));
         console.log('');
 
         const newStatus = getStatus(cwd);
@@ -577,7 +580,7 @@ program
     .action((opts) => {
         const cwd = opts.dir as string;
         const port = parseInt(opts.port as string, 10);
-        startDashboard(cwd, port);
+        startDashboard(cwd, port, pkg.version);
     });
 
 // ────────────────────────────── SNAPSHOT ──────────────────────────────
@@ -732,9 +735,42 @@ program
         console.log('');
     });
 
+// ────────────────────────────── BRIEF ──────────────────────────────
+program
+    .command('brief')
+    .description('Generate .devkit/BRIEF.md — project index for AI agents')
+    .option('-d, --dir <path>', 'Project directory', process.cwd())
+    .option('--stdout', 'Print to stdout instead of writing file', false)
+    .action((opts) => {
+        const cwd = opts.dir as string;
+
+        const result = generateBrief(cwd);
+
+        if (!result.generated) {
+            console.log(chalk.red(`\n  ❌ ${result.error}\n`));
+            process.exitCode = 1;
+            return;
+        }
+
+        if (opts.stdout) {
+            console.log(result.content);
+            return;
+        }
+
+        console.log(chalk.bold('\n📄 Project Brief\n'));
+        console.log(chalk.green('  ✅ Generated: .devkit/BRIEF.md'));
+        console.log(`     Invariants: ${result.stats.techInvariants} tech + ${result.stats.uxInvariants} UX`);
+        console.log(`     Open items: ${result.stats.openItems}`);
+        console.log(`     Lines: ${result.stats.totalLines}`);
+        console.log('');
+        console.log(chalk.dim('  AI agents should read this file at session start.'));
+        console.log(chalk.dim('  Regenerate anytime: devkit brief'));
+        console.log('');
+    });
+
 // ────────────────────────────── HELP (progressive disclosure) ──────────────────────────────
 function getPhaseCommands(phase: Phase): string[] {
-    const always = ['status', 'validate', 'gate', 'advance', 'coverage', 'dashboard', 'snapshot', 'diff'];
+    const always = ['status', 'validate', 'gate', 'advance', 'coverage', 'dashboard', 'brief', 'snapshot', 'diff'];
 
     const phaseSpecific: Record<Phase, string[]> = {
         research: [],

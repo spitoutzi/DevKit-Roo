@@ -1,18 +1,9 @@
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { PHASE_ORDER, PHASE_LABELS } from './utils.js';
 
 export type Phase = 'research' | 'product' | 'arch' | 'spec' | 'qa';
 export type PhaseStatus = 'pending' | 'in_progress' | 'done';
-
-const PHASE_ORDER: Phase[] = ['research', 'product', 'arch', 'spec', 'qa'];
-
-const PHASE_LABELS: Record<Phase, string> = {
-    research: 'ResearchKit',
-    product: 'ProductKit',
-    arch: 'ArchKit',
-    spec: 'SpecKit',
-    qa: 'QAKit',
-};
 
 const PHASE_NEXT_STEP: Record<Phase, string> = {
     research: 'Define your idea. Run /research-kit or create artifacts in .devkit/research/',
