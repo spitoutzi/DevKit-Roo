@@ -30,6 +30,14 @@ const HOOK_MAP: Array<[string, string]> = [
 /** All unique command names that have hooks */
 const COMMAND_NAMES = [...new Set(HOOK_MAP.map(([cmd]) => cmd))];
 
+/** Additional commands for Roo Code to provide full methodology workflow */
+const ROO_ONLY_COMMANDS = [
+    '01-research-kit',
+    '02-product-kit',
+    '03-arch-kit',
+    '05-qa-kit'
+];
+
 function getSpecKitDir(): string | null {
     const thisFile = fileURLToPath(import.meta.url);
     const distDir = dirname(thisFile);       // cli/dist/
@@ -147,8 +155,14 @@ export function injectDevkitHooks(cwd: string, opts?: { force?: boolean }): Inje
         const config = SUPPORTED_AGENTS[agent]!;
         const isMarkdown = config.ext === '.md';
 
+        // Determine which commands to process for this agent
+        const commandsToProcess = [...COMMAND_NAMES];
+        if (agent === 'roo') {
+            commandsToProcess.push(...ROO_ONLY_COMMANDS);
+        }
+
         // Process each command
-        for (const commandName of COMMAND_NAMES) {
+        for (const commandName of commandsToProcess) {
             const targetPath = getTargetCommandPath(cwd, agent, commandName);
             const bundledPath = getBundledCommandPath(specKitDir, commandName);
 

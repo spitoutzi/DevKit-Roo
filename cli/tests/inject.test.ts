@@ -74,14 +74,14 @@ describe('injectDevkitHooks', () => {
         mkdirSync(join(TEST_DIR, '.gemini', 'commands'), { recursive: true });
 
         const first = injectDevkitHooks(TEST_DIR);
-        // Gemini doesn't get "created" files from bundle, so 7*2 = 14
-        expect(first.created.length).toBe(14);
+        // Claude (7) + Roo (7 + 4 numbered) = 18
+        expect(first.created.length).toBe(18);
         expect(first.skipped.length).toBe(0);
 
         const second = injectDevkitHooks(TEST_DIR);
         expect(second.created.length).toBe(0);
         expect(second.injected.length).toBe(0);
-        expect(second.skipped.length).toBe(14);
+        expect(second.skipped.length).toBe(18);
     });
 
     it('re-injects when markers are removed from a file', () => {
@@ -130,7 +130,9 @@ describe('injectDevkitHooks', () => {
         injectDevkitHooks(TEST_DIR);
 
         const result = injectDevkitHooks(TEST_DIR, { force: true });
-        expect(result.skipped.length).toBe(0);
+        // Numbered commands don't have hooks, so they are skipped if they exist
+        // 18 total - 4 numbered = 14
+        expect(result.skipped.length).toBe(4);
         expect(result.injected.length + result.created.length).toBe(14);
     });
 
@@ -168,6 +170,16 @@ describe('injectDevkitHooks', () => {
         expect(allCommands).toContain('claude:speckit.implement');
         expect(allCommands).toContain('claude:speckit.analyze');
         expect(allCommands).toContain('claude:speckit.checklist');
+    });
+
+    it('handles numbered commands for Roo Code', () => {
+        mkdirSync(join(TEST_DIR, '.roo', 'commands'), { recursive: true });
+        const result = injectDevkitHooks(TEST_DIR);
+        
+        expect(existsSync(join(TEST_DIR, '.roo', 'commands', '01-research-kit.md'))).toBe(true);
+        expect(existsSync(join(TEST_DIR, '.roo', 'commands', '02-product-kit.md'))).toBe(true);
+        expect(existsSync(join(TEST_DIR, '.roo', 'commands', '03-arch-kit.md'))).toBe(true);
+        expect(existsSync(join(TEST_DIR, '.roo', 'commands', '05-qa-kit.md'))).toBe(true);
     });
 
     it('speckit.plan has two hooks', () => {
