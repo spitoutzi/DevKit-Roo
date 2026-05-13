@@ -74,14 +74,14 @@ describe('injectDevkitHooks', () => {
         mkdirSync(join(TEST_DIR, '.gemini', 'commands'), { recursive: true });
 
         const first = injectDevkitHooks(TEST_DIR);
-        // Claude (7) + Roo (7 + 4 numbered) = 18
-        expect(first.created.length).toBe(18);
+        // Claude (7 + 6 methodology) + Roo (7 + 6 methodology) = 26
+        expect(first.created.length).toBe(26);
         expect(first.skipped.length).toBe(0);
 
         const second = injectDevkitHooks(TEST_DIR);
         expect(second.created.length).toBe(0);
         expect(second.injected.length).toBe(0);
-        expect(second.skipped.length).toBe(18);
+        expect(second.skipped.length).toBe(26);
     });
 
     it('re-injects when markers are removed from a file', () => {
@@ -131,8 +131,8 @@ describe('injectDevkitHooks', () => {
 
         const result = injectDevkitHooks(TEST_DIR, { force: true });
         // Numbered commands don't have hooks, so they are skipped if they exist
-        // 18 total - 4 numbered = 14
-        expect(result.skipped.length).toBe(4);
+        // 26 total - 12 methodology = 14
+        expect(result.skipped.length).toBe(12);
         expect(result.injected.length + result.created.length).toBe(14);
     });
 
@@ -172,13 +172,23 @@ describe('injectDevkitHooks', () => {
         expect(allCommands).toContain('claude:speckit.checklist');
     });
 
-    it('handles numbered commands for Roo Code', () => {
+    it('handles methodology commands for Claude and Roo', () => {
+        mkdirSync(join(TEST_DIR, '.claude', 'commands'), { recursive: true });
         mkdirSync(join(TEST_DIR, '.roo', 'commands'), { recursive: true });
         const result = injectDevkitHooks(TEST_DIR);
         
+        expect(existsSync(join(TEST_DIR, '.claude', 'commands', '00-devkit-init.md'))).toBe(true);
+        expect(existsSync(join(TEST_DIR, '.claude', 'commands', '01-research-kit.md'))).toBe(true);
+        expect(existsSync(join(TEST_DIR, '.claude', 'commands', '02-product-kit.md'))).toBe(true);
+        expect(existsSync(join(TEST_DIR, '.claude', 'commands', '03-arch-kit.md'))).toBe(true);
+        expect(existsSync(join(TEST_DIR, '.claude', 'commands', '04-spec-kit.md'))).toBe(true);
+        expect(existsSync(join(TEST_DIR, '.claude', 'commands', '05-qa-kit.md'))).toBe(true);
+
+        expect(existsSync(join(TEST_DIR, '.roo', 'commands', '00-devkit-init.md'))).toBe(true);
         expect(existsSync(join(TEST_DIR, '.roo', 'commands', '01-research-kit.md'))).toBe(true);
         expect(existsSync(join(TEST_DIR, '.roo', 'commands', '02-product-kit.md'))).toBe(true);
         expect(existsSync(join(TEST_DIR, '.roo', 'commands', '03-arch-kit.md'))).toBe(true);
+        expect(existsSync(join(TEST_DIR, '.roo', 'commands', '04-spec-kit.md'))).toBe(true);
         expect(existsSync(join(TEST_DIR, '.roo', 'commands', '05-qa-kit.md'))).toBe(true);
     });
 

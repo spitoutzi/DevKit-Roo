@@ -30,11 +30,13 @@ const HOOK_MAP: Array<[string, string]> = [
 /** All unique command names that have hooks */
 const COMMAND_NAMES = [...new Set(HOOK_MAP.map(([cmd]) => cmd))];
 
-/** Additional commands for Roo Code to provide full methodology workflow */
-const ROO_ONLY_COMMANDS = [
+/** Additional methodology commands for all Markdown-based agents */
+const METHODOLOGY_COMMANDS = [
+    '00-devkit-init',
     '01-research-kit',
     '02-product-kit',
     '03-arch-kit',
+    '04-spec-kit',
     '05-qa-kit'
 ];
 
@@ -157,8 +159,8 @@ export function injectDevkitHooks(cwd: string, opts?: { force?: boolean }): Inje
 
         // Determine which commands to process for this agent
         const commandsToProcess = [...COMMAND_NAMES];
-        if (agent === 'roo') {
-            commandsToProcess.push(...ROO_ONLY_COMMANDS);
+        if (isMarkdown) {
+            commandsToProcess.push(...METHODOLOGY_COMMANDS);
         }
 
         // Process each command
