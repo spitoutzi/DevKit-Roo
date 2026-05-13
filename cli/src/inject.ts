@@ -140,17 +140,24 @@ export function injectDevkitHooks(cwd: string, opts?: { force?: boolean }): Inje
         return existsSync(agentDir);
     });
 
-    if (activeAgents.length === 0) {
-        // Default to claude if none found, to support greenfield init before specify init
-        activeAgents.push('claude');
-        mkdirSync(join(cwd, SUPPORTED_AGENTS['claude']!.dir), { recursive: true });
-    }
-
     // Special case: if .roo/ exists but .roo/commands doesn't, we still consider it active
     // to ensure .roomodes is generated and commands are created.
     if (!activeAgents.includes('roo') && existsSync(join(cwd, '.roo'))) {
         activeAgents.push('roo');
-        mkdirSync(join(cwd, SUPPORTED_AGENTS['roo']!.dir), { recursive: true });
+    }
+
+    if (activeAgents.length === 0) {
+        // If no agents detected, we activate both Claude and Roo by default
+        // to support greenfield init and ensure Roo Code is ready.
+        activeAgents.push('claude', 'roo');
+    }
+
+    // Ensure directories exist for all active agents
+    for (const agent of activeAgents) {
+        const agentDir = join(cwd, SUPPORTED_AGENTS[agent]!.dir);
+        if (!existsSync(agentDir)) {
+            mkdirSync(agentDir, { recursive: true });
+        }
     }
 
     for (const agent of activeAgents) {
