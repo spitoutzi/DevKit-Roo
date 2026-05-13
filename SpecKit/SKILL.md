@@ -42,7 +42,7 @@ ls .specify/scripts/
 ```
 If missing:
 ```bash
-specify init . --ai claude
+specify init . --integration <agent>
 ```
 
 ## Your Role

@@ -132,7 +132,7 @@ devkit init
     Describe your idea and explore feasibility.
 ```
 
-Команда идемпотентна — повторный вызов ничего не ломает. При инициализации автоматически инжектятся DevKit-хуки в speckit-команды (`.claude/commands/speckit.*.md`).
+Команда идемпотентна — повторный вызов ничего не ломает. При инициализации автоматически инжектятся DevKit-хуки в speckit-команды (`.claude/, .roo/, .gemini/`).
 
 ---
 
@@ -742,7 +742,7 @@ devkit brief --stdout     # вывод в консоль
 ### Greenfield проект
 
 ```bash
-specify init . --ai claude              # установить spec-kit (.specify/)
+specify init . --integration <agent>              # установить spec-kit (.specify/)
 devkit init                             # создать .devkit/ + инжектить хуки в speckit-команды
 # → Работа с AI через /research-kit
 devkit validate                         # проверить артефакты
@@ -845,7 +845,7 @@ AI в процессе диалога распознаёт тип события
   memory/
     constitution.md       ← OWNED BY ArchKit, не редактировать
 
-.claude/commands/         ← speckit slash-команды с DevKit-хуками
+.claude/, .roo/, .gemini/         ← speckit slash-команды с DevKit-хуками
   speckit.specify.md      ← /speckit.specify + invariant-guard
   speckit.clarify.md      ← /speckit.clarify + invariant-check
   speckit.plan.md         ← /speckit.plan + constitution-precheck + plan-postcheck
@@ -875,10 +875,10 @@ DevKit не заменяет spec-kit. SpecKit — это уровень 4 эк�
 
 **Интеграция через `devkit inject`:**
 
-`devkit init` автоматически инжектит DevKit-хуки в speckit slash-команды (`.claude/commands/speckit.*.md`). Это превращает стандартный spec-kit workflow в DevKit-aware: каждая speckit-команда теперь запускает `devkit validate`, `devkit impact`, `devkit coverage` в нужных точках. Spec-kit продолжает работать как execution engine, а DevKit обеспечивает контроль инвариантов.
+`devkit init` автоматически инжектит DevKit-хуки в speckit slash-команды (`.claude/, .roo/, .gemini/`). Это превращает стандартный spec-kit workflow в DevKit-aware: каждая speckit-команда теперь запускает `devkit validate`, `devkit impact`, `devkit coverage` в нужных точках. Spec-kit продолжает работать как execution engine, а DevKit обеспечивает контроль инвариантов.
 
 ```
-specify init . --ai claude     # ① spec-kit: скрипты, шаблоны, memory
+specify init . --integration <agent>     # ① spec-kit: скрипты, шаблоны, memory
 devkit init                    # ② devkit: .devkit/ + хуки → speckit-команды
 /speckit.specify ...           # ③ speckit-команда запускает devkit impact/validate
 ```
@@ -903,3 +903,22 @@ DevKit распространяется как набор [Agent Skills](https:/
 ## Лицензия
 
 MIT
+
+### Интеграция с Roo Code
+
+DevKit-Roo автоматически настраивает Roo Code для работы по методологии через Custom Modes.
+
+#### Пять уровней методологии в Roo Code:
+1. **[ResearchKit]** → "возможно ли это вообще?" (Анализ рынка, техническая осуществимость).
+2. **[ProductKit]** → "что именно строим и для кого?" (UX инварианты, роадмап).
+3. **[ArchKit]** → "как это устроено технически?" (Технические инварианты, ADR, RFC).
+4. **[SpecKit]** → "строим" (Интеграция с github/spec-kit).
+5. **[QAKit]** → "работает ли это как мы решили?" (Контракты тестов, эскалации).
+
+#### Custom Modes:
+При запуске `devkit init` в корне проекта создается файл `.roomodes`, добавляющий два специализированных режима:
+- **SpecKit Architect**: Фокус на уровнях Research, Product и Arch. Следит за соблюдением конституции проекта и инвариантов.
+- **SpecKit Developer**: Фокус на уровне SpecKit. Реализация фич с автоматической проверкой через DevKit-хуки.
+
+#### Слэш-команды:
+Все команды SpecKit (например, `/speckit.plan`) автоматически копируются в `.roo/commands/` и дополняются хуками `devkit validate` и `devkit gate`. Это гарантирует, что агент не сможет перейти к реализации, пока архитектурные артефакты не пройдут валидацию.

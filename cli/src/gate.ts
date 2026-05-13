@@ -163,7 +163,7 @@ function checkArchGate(devkitDir: string): GateCondition[] {
     conditions.push({
         description: 'spec-kit initialized (.specify/scripts/)',
         satisfied: specKitInitialized,
-        detail: !specKitInitialized ? 'Run "specify init . --ai claude" to initialize spec-kit' : undefined,
+        detail: !specKitInitialized ? 'Run "specify init . --integration <agent>" to initialize spec-kit' : undefined,
     });
 
     // Constitution synced to spec-kit path

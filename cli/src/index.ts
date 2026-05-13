@@ -77,7 +77,7 @@ program
         if (!result.specKitFound) {
             console.log(chalk.yellow('\n  ⚠️  spec-kit not found. DevKit Level 4 (SpecKit) requires it.'));
             console.log(chalk.dim('    Install: uv tool install specify-cli --from git+https://github.com/github/spec-kit.git'));
-            console.log(chalk.dim('    Then:    specify init . --ai claude'));
+            console.log(chalk.dim('    Then:    specify init . --integration <agent>'));
         } else {
             console.log(chalk.green('\n  ✅ spec-kit detected'));
         }
@@ -687,7 +687,7 @@ program
 // ────────────────────────────── INJECT ──────────────────────────────
 program
     .command('inject')
-    .description('Inject DevKit hooks into speckit commands (.claude/commands/)')
+    .description('Inject DevKit hooks into speckit commands (.claude, .roo, .gemini)')
     .option('-d, --dir <path>', 'Project directory', process.cwd())
     .option('--force', 'Re-inject even if current', false)
     .action((opts) => {

@@ -29,6 +29,30 @@ describe('injectDevkitHooks', () => {
         expect(existsSync(join(TEST_DIR, '.claude', 'commands', 'speckit.checklist.md'))).toBe(true);
     });
 
+    it('creates .roo/commands/ if missing and copies bundled commands', () => {
+        mkdirSync(join(TEST_DIR, '.roo', 'commands'), { recursive: true });
+        const result = injectDevkitHooks(TEST_DIR);
+
+        expect(result.errors).toEqual([]);
+        expect(result.created.length).toBeGreaterThan(0);
+        expect(existsSync(join(TEST_DIR, '.roo', 'commands', 'speckit.specify.md'))).toBe(true);
+        expect(existsSync(join(TEST_DIR, '.roo', 'commands', 'speckit.clarify.md'))).toBe(true);
+        expect(existsSync(join(TEST_DIR, '.roo', 'commands', 'speckit.plan.md'))).toBe(true);
+        expect(existsSync(join(TEST_DIR, '.roo', 'commands', 'speckit.tasks.md'))).toBe(true);
+        expect(existsSync(join(TEST_DIR, '.roo', 'commands', 'speckit.implement.md'))).toBe(true);
+        expect(existsSync(join(TEST_DIR, '.roo', 'commands', 'speckit.analyze.md'))).toBe(true);
+        expect(existsSync(join(TEST_DIR, '.roo', 'commands', 'speckit.checklist.md'))).toBe(true);
+    });
+
+    it('creates .gemini/commands/ if missing and copies bundled commands', () => {
+        mkdirSync(join(TEST_DIR, '.gemini', 'commands'), { recursive: true });
+        const result = injectDevkitHooks(TEST_DIR);
+
+        expect(result.errors).toEqual([]);
+        // Gemini is TOML, we don't copy bundled MD files to it
+        expect(existsSync(join(TEST_DIR, '.gemini', 'commands'))).toBe(true);
+    });
+
     it('created files contain DEVKIT markers', () => {
         injectDevkitHooks(TEST_DIR);
 
@@ -44,14 +68,20 @@ describe('injectDevkitHooks', () => {
     });
 
     it('is idempotent — skips on second run', () => {
+        // Setup all agents
+        mkdirSync(join(TEST_DIR, '.claude', 'commands'), { recursive: true });
+        mkdirSync(join(TEST_DIR, '.roo', 'commands'), { recursive: true });
+        mkdirSync(join(TEST_DIR, '.gemini', 'commands'), { recursive: true });
+
         const first = injectDevkitHooks(TEST_DIR);
-        expect(first.created.length).toBe(7);
+        // Gemini doesn't get "created" files from bundle, so 7*2 = 14
+        expect(first.created.length).toBe(14);
         expect(first.skipped.length).toBe(0);
 
         const second = injectDevkitHooks(TEST_DIR);
         expect(second.created.length).toBe(0);
         expect(second.injected.length).toBe(0);
-        expect(second.skipped.length).toBe(7);
+        expect(second.skipped.length).toBe(14);
     });
 
     it('re-injects when markers are removed from a file', () => {
@@ -66,7 +96,7 @@ describe('injectDevkitHooks', () => {
         writeFileSync(specifyPath, stripped, 'utf-8');
 
         const result = injectDevkitHooks(TEST_DIR);
-        expect(result.injected).toContain('speckit.specify');
+        expect(result.injected).toContain('claude:speckit.specify');
 
         // Verify markers are back
         const updated = readFileSync(specifyPath, 'utf-8');
@@ -87,7 +117,7 @@ describe('injectDevkitHooks', () => {
         writeFileSync(specifyPath, modified, 'utf-8');
 
         const result = injectDevkitHooks(TEST_DIR);
-        expect(result.injected).toContain('speckit.specify');
+        expect(result.injected).toContain('claude:speckit.specify');
 
         const updated = readFileSync(specifyPath, 'utf-8');
         expect(updated).not.toContain('OLD CONTENT');
@@ -95,11 +125,13 @@ describe('injectDevkitHooks', () => {
     });
 
     it('force mode re-injects even when current', () => {
+        mkdirSync(join(TEST_DIR, '.claude', 'commands'), { recursive: true });
+        mkdirSync(join(TEST_DIR, '.roo', 'commands'), { recursive: true });
         injectDevkitHooks(TEST_DIR);
 
         const result = injectDevkitHooks(TEST_DIR, { force: true });
         expect(result.skipped.length).toBe(0);
-        expect(result.injected.length + result.created.length).toBe(7);
+        expect(result.injected.length + result.created.length).toBe(14);
     });
 
     it('preserves non-DevKit content in existing files', () => {
@@ -129,13 +161,13 @@ describe('injectDevkitHooks', () => {
     it('handles all 7 commands', () => {
         const result = injectDevkitHooks(TEST_DIR);
         const allCommands = [...result.created, ...result.injected, ...result.skipped];
-        expect(allCommands).toContain('speckit.specify');
-        expect(allCommands).toContain('speckit.clarify');
-        expect(allCommands).toContain('speckit.plan');
-        expect(allCommands).toContain('speckit.tasks');
-        expect(allCommands).toContain('speckit.implement');
-        expect(allCommands).toContain('speckit.analyze');
-        expect(allCommands).toContain('speckit.checklist');
+        expect(allCommands).toContain('claude:speckit.specify');
+        expect(allCommands).toContain('claude:speckit.clarify');
+        expect(allCommands).toContain('claude:speckit.plan');
+        expect(allCommands).toContain('claude:speckit.tasks');
+        expect(allCommands).toContain('claude:speckit.implement');
+        expect(allCommands).toContain('claude:speckit.analyze');
+        expect(allCommands).toContain('claude:speckit.checklist');
     });
 
     it('speckit.plan has two hooks', () => {
@@ -144,5 +176,21 @@ describe('injectDevkitHooks', () => {
         const plan = readFileSync(join(TEST_DIR, '.claude', 'commands', 'speckit.plan.md'), 'utf-8');
         const starts = plan.match(/<!-- DEVKIT:START:/g);
         expect(starts?.length).toBe(2);
+    });
+
+    it('creates .roomodes for Roo Code', () => {
+        // Ensure .roo/commands exists to trigger roo agent detection
+        mkdirSync(join(TEST_DIR, '.roo', 'commands'), { recursive: true });
+        
+        injectDevkitHooks(TEST_DIR);
+
+        const roomodesPath = join(TEST_DIR, '.roomodes');
+        expect(existsSync(roomodesPath)).toBe(true);
+
+        const roomodes = JSON.parse(readFileSync(roomodesPath, 'utf-8'));
+        expect(roomodes.customModes).toBeDefined();
+        const slugs = roomodes.customModes.map((m: any) => m.slug);
+        expect(slugs).toContain('speckit-architect');
+        expect(slugs).toContain('speckit-developer');
     });
 });

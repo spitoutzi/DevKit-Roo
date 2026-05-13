@@ -74,6 +74,7 @@ function detectProjectStructure(cwd: string): string[] {
             '.specify': 'spec-kit workspace',
             '.agent': 'Agent Skills',
             '.claude': 'Claude agent config',
+            '.roo': 'Roo Code agent config',
             '.gemini': 'Gemini agent config',
             'src': 'Source code',
             'tests': 'Tests',
