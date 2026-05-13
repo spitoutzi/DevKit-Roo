@@ -60,6 +60,30 @@ export function scaffoldDevkit(cwd: string, mode: string): ScaffoldResult {
     const skipped: string[] = [];
     let skillsInstalled = 0;
 
+    // Install Roo configurations (Honest Coder)
+    const rooConfigs = [
+        { src: '.roomodes', dest: '.roomodes' },
+        { src: '.roo/rules-honest-coder/rules.md', dest: '.roo/rules-honest-coder/rules.md' }
+    ];
+
+    for (const config of rooConfigs) {
+        const srcPath = join(cwd, 'DevKit', config.src);
+        const destPath = join(cwd, config.dest);
+
+        if (existsSync(srcPath)) {
+            if (!existsSync(destPath)) {
+                const destDir = dirname(destPath);
+                if (!existsSync(destDir)) {
+                    mkdirSync(destDir, { recursive: true });
+                }
+                cpSync(srcPath, destPath);
+                created.push(config.dest);
+            } else {
+                skipped.push(config.dest);
+            }
+        }
+    }
+
     // Create .devkit/ directories
     for (const dir of DIRECTORIES) {
         const fullPath = join(cwd, dir);
