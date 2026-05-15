@@ -48,7 +48,7 @@ If not found, inform the developer (do not block init):
 Note: spec-kit not found. DevKit works independently.
 If you want SpecKit integration, install with:
   uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
-Then run: specify init . --integration <agent>
+Then run: specify init . --integration roo
 ```
 
 Important: spec-kit installation is optional. DevKit init must succeed regardless of spec-kit availability.

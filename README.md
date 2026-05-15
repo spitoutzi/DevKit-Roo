@@ -25,13 +25,19 @@ DevKit — это **upstream layer** над SpecKit. Не конкурент, н
 ### Установка CLI
 
 ```bash
-# Рекомендуется — из исходников вашего форка:
-git clone <url-вашего-форка> && cd DevKit/cli
+# Вариант 1 — глобальная установка из форка (рекомендуется)
+git clone <url-вашего-форка> && cd DevKit-Roo/cli
+npm install && npm run build
+npm link
+# Теперь devkit доступен глобально
+
+# Вариант 2 — через alias (без глобальной установки)
+git clone <url-вашего-форка> && cd DevKit-Roo/cli
 npm install && npm run build
 alias devkit="node $(pwd)/dist/index.js"
 ```
 
-> Если вы используете форк этого проекта — установка через глобальный пакет `@x0rium/devkit-cli` поставит оригинальную версию. Чтобы использовать свои изменения, всегда собирайте из исходников.
+> **Важно:** Установка через `npm i -g @x0rium/devkit-cli` поставит **оригинальную** версию, а не форк. Чтобы использовать изменения из форка, устанавливайте из исходников как описано выше. Если вы склонировали репозиторий с другим именем (не DevKit-Roo), замените `DevKit-Roo` на имя вашей директории.
 
 ### Первая сессия
 
@@ -766,8 +772,8 @@ devkit brief --stdout     # вывод в консоль
 ### Greenfield проект
 
 ```bash
-specify init . --integration <agent>              # установить spec-kit (.specify/)
-devkit init                             # создать .devkit/ + инжектить хуки в speckit-команды
+specify init . --integration roo                  # установить spec-kit (.specify/)
+devkit init                             # создать .devkit/ + .roomodes, .roo/, команды
 # → Работа с AI через /research-kit
 devkit validate                         # проверить артефакты
 devkit gate                             # готовы ли к следующей фазе?
@@ -910,8 +916,8 @@ DevKit не заменяет spec-kit. SpecKit — это уровень 4 эк�
 `devkit init` автоматически инжектит DevKit-хуки в speckit slash-команды (`.claude/, .roo/, .gemini/`). Это превращает стандартный spec-kit workflow в DevKit-aware: каждая speckit-команда теперь запускает `devkit validate`, `devkit impact`, `devkit coverage` в нужных точках. Spec-kit продолжает работать как execution engine, а DevKit обеспечивает контроль инвариантов.
 
 ```
-specify init . --integration <agent>     # ① spec-kit: скрипты, шаблоны, memory
-devkit init                    # ② devkit: .devkit/ + хуки → speckit-команды
+specify init . --integration roo         # ① spec-kit: скрипты, шаблоны, memory
+devkit init                    # ② devkit: .devkit/ + .roomodes, .roo/, хуки
 /speckit.specify ...           # ③ speckit-команда запускает devkit impact/validate
 ```
 

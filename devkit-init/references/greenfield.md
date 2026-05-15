@@ -4,8 +4,8 @@ Fresh project. No code, no .devkit/, no .specify/.
 
 ## What to Do
 
-1. Create .devkit/ structure (done by SKILL.md)
-2. Run `specify init . --ai claude` (done by SKILL.md)
+1. Run `devkit init` — creates `.devkit/`, `.roomodes`, `.roo/commands/`, `.agent/skills/`
+2. (Опционально) Установить spec-kit: `specify init . --integration roo`
 3. Tell developer to start with ResearchKit
 
 ## Starting Message to Developer
