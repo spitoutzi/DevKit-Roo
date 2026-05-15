@@ -56,6 +56,32 @@ function getSkillsSourceDir(): string | null {
 }
 
 /**
+ * Resolve path to DevKit/.roomodes template.
+ *
+ * Strategy (tried in order):
+ *   1. cwd/DevKit/.roomodes              — development mode (repo root)
+ *   2. <package-root>/DevKit/.roomodes    — npm-installed mode (bundled asset)
+ *
+ * Returns null if not found.
+ */
+function resolveRoomodesSrc(cwd: string): string | null {
+    // 1. Try cwd/DevKit/.roomodes (development mode — repo root)
+    const devKitDir = join(cwd, 'DevKit');
+    const localPath = join(devKitDir, '.roomodes');
+    if (existsSync(localPath)) return localPath;
+
+    // 2. Try <package-root>/DevKit/.roomodes (npm-installed mode)
+    //    cliRoot = @x0rium/devkit-cli/ (parent of dist/ or src/)
+    const thisFile = fileURLToPath(import.meta.url);
+    const distDir = dirname(thisFile);       // cli/dist/ or cli/src/
+    const cliRoot = dirname(distDir);        // cli/ (package root)
+    const bundledPath = join(cliRoot, 'DevKit', '.roomodes');
+
+    if (existsSync(bundledPath)) return bundledPath;
+    return null;
+}
+
+/**
  * Recursively copy directory contents from src to dest.
  * - Creates subdirectories as needed
  * - Copies files that don't exist yet (won't overwrite)
@@ -124,10 +150,10 @@ export function scaffoldDevkit(cwd: string, mode: string): ScaffoldResult {
     }
 
     // 2. Copy DevKit/.roomodes → .roomodes (always overwrite — template is source of truth)
-    const roomodesSrc = join(devkitDir, '.roomodes');
+    const roomodesSrc = resolveRoomodesSrc(cwd);
     const roomodesDest = join(cwd, '.roomodes');
 
-    if (existsSync(roomodesSrc)) {
+    if (roomodesSrc) {
         if (!existsSync(roomodesDest)) {
             cpSync(roomodesSrc, roomodesDest);
             created.push('.roomodes');
@@ -135,6 +161,15 @@ export function scaffoldDevkit(cwd: string, mode: string): ScaffoldResult {
             // Overwrite with template version
             cpSync(roomodesSrc, roomodesDest);
             created.push('.roomodes (updated)');
+        }
+    } else {
+        // If template not found, create a minimal .roomodes placeholder
+        // so the project still works with Roo
+        if (!existsSync(roomodesDest)) {
+            writeFileSync(roomodesDest, 'customModes: []\n', 'utf-8');
+            created.push('.roomodes (minimal)');
+        } else {
+            skipped.push('.roomodes');
         }
     }
 

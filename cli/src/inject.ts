@@ -141,7 +141,7 @@ export function injectDevkitHooks(cwd: string, opts?: { force?: boolean }): Inje
     });
 
     // Special case: if .roo/ exists but .roo/commands doesn't, we still consider it active
-    // to ensure .roomodes is generated and commands are created.
+    // to ensure commands are created for Roo.
     if (!activeAgents.includes('roo') && existsSync(join(cwd, '.roo'))) {
         activeAgents.push('roo');
     }
