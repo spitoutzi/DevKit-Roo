@@ -50,7 +50,7 @@ devkit watch             # Watch for changes and auto-validate
 
 ```bash
 cd cli && npm run build   # Build
-npm test                  # Run tests (vitest, 77 tests)
+npm test                  # Run tests (vitest, 81 tests)
 ```
 
 ## Key Conventions

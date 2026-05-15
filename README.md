@@ -16,6 +16,8 @@
 
 DevKit — это **upstream layer** над SpecKit. Не конкурент, не форк — экосистема из пяти уровней где каждый генерирует артефакты для следующего.
 
+Данный проект - форк официального от @x0rium, заточенный под Roo Code.
+
 ---
 
 ## Быстрый старт
@@ -23,19 +25,13 @@ DevKit — это **upstream layer** над SpecKit. Не конкурент, н
 ### Установка CLI
 
 ```bash
-# Через npm (рекомендуется)
-npm i -g @x0rium/devkit-cli
-
-# Или одноразово через npx
-npx @x0rium/devkit-cli init
+# Рекомендуется — из исходников вашего форка:
+git clone <url-вашего-форка> && cd DevKit/cli
+npm install && npm run build
+alias devkit="node $(pwd)/dist/index.js"
 ```
 
-> Альтернативно — из исходников:
-> ```bash
-> git clone https://github.com/x0rium/DevKit.git && cd DevKit/cli
-> npm install && npm run build
-> alias devkit="node $(pwd)/dist/index.js"
-> ```
+> Если вы используете форк этого проекта — установка через глобальный пакет `@x0rium/devkit-cli` поставит оригинальную версию. Чтобы использовать свои изменения, всегда собирайте из исходников.
 
 ### Первая сессия
 
@@ -64,7 +60,7 @@ DevKit автоматически определит состояние прое
 | Пустая папка | Greenfield | Создаёт .devkit/, инжектит speckit-команды, старт с ResearchKit |
 | Код без .devkit/ | Brownfield | Реконструирует инварианты из кода, выявляет gaps |
 | .specify/ без .devkit/ | Upgrade | Извлекает артефакты из constitution.md, связывает |
-| .devkit/ уже есть | Re-init | Пропускает существующее, обновляет skills и speckit-хуки |
+| .devkit/ уже есть | Re-init | Пропускает существующее, обновляет skills и speckit-хуки, обновляет `.roo/` и `.roomodes` из шаблона |
 
 ---
 
@@ -114,6 +110,34 @@ devkit init
   Detected: greenfield project
 
   Created:
+    + .roo/
+    + .roo/commands/00-devkit-init.md
+    + .roo/commands/01-research-kit.md
+    + .roo/commands/02-product-kit.md
+    + .roo/commands/03-arch-kit.md
+    + .roo/commands/04-spec-kit.md
+    + .roo/commands/05-qa-kit.md
+    + .roo/commands/speckit.plan.md
+    + .roo/commands/speckit.specify.md
+    + .roo/commands/speckit.implement.md
+    + .roo/commands/speckit.analyze.md
+    + .roo/commands/speckit.checklist.md
+    + .roo/commands/speckit.clarify.md
+    + .roo/commands/speckit.tasks.md
+    + .roo/commands/arch-kit.md
+    + .roo/commands/devkit-init.md
+    + .roo/commands/qa-kit.md
+    + .roo/commands/spec-kit.md
+    + .roo/commands/speckit.constitution.md
+    + .roo/commands/speckit.git.commit.md
+    + .roo/commands/speckit.git.feature.md
+    + .roo/commands/speckit.git.initialize.md
+    + .roo/commands/speckit.git.remote.md
+    + .roo/commands/speckit.git.validate.md
+    + .roo/commands/speckit.taskstoissues.md
+    + .roo/mcp.json
+    + .roo/rules-devkit-coder/rules.md
+    + .roomodes
     + .devkit/
     + .devkit/research/
     + .devkit/product/
@@ -125,7 +149,7 @@ devkit init
 
   🧠 Agent Skills: 6 installed → .agent/skills/
 
-  🔗 7 speckit commands enhanced with DevKit hooks
+  🔗 13 speckit commands enhanced with DevKit hooks
 
   Next steps:
     Start with: /research-kit
@@ -841,11 +865,19 @@ AI в процессе диалога распознаёт тип события
     escalations/
       ESC-XXX.md          ← история QA эскалаций
 
+.roomodes                 ← Custom Modes для Roo Code (3 режима: devkit-coder, devkit-research, devkit-architect)
+
+.roo/                     ← Roo Code конфигурация (копируется из DevKit/.roo/)
+  mcp.json                ← MCP-серверы (memory, context7)
+  commands/               ← слэш-команды с DevKit-хуками
+  rules-devkit-coder/     ← правила режима Devkit Coder
+    rules.md
+
 .specify/                 ← github/spec-kit (не редактировать вручную)
   memory/
     constitution.md       ← OWNED BY ArchKit, не редактировать
 
-.claude/, .roo/, .gemini/         ← speckit slash-команды с DevKit-хуками
+.claude/, .roo/commands/, .gemini/   ← speckit slash-команды с DevKit-хуками
   speckit.specify.md      ← /speckit.specify + invariant-guard
   speckit.clarify.md      ← /speckit.clarify + invariant-check
   speckit.plan.md         ← /speckit.plan + constitution-precheck + plan-postcheck
@@ -915,10 +947,52 @@ DevKit-Roo автоматически настраивает Roo Code для р�
 4. **[SpecKit]** → "строим" (Интеграция с github/spec-kit).
 5. **[QAKit]** → "работает ли это как мы решили?" (Контракты тестов, эскалации).
 
-#### Custom Modes:
-При запуске `devkit init` в корне проекта создается файл `.roomodes`, добавляющий два специализированных режима:
-- **SpecKit Architect**: Фокус на уровнях Research, Product и Arch. Следит за соблюдением конституции проекта и инвариантов.
-- **SpecKit Developer**: Фокус на уровне SpecKit. Реализация фич с автоматической проверкой через DevKit-хуки.
+#### Custom Modes (`.roomodes`):
+При запуске `devkit init` в корне проекта создаётся файл `.roomodes` с тремя режимами:
 
-#### Слэш-команды:
-Все команды SpecKit (например, `/speckit.plan`) автоматически копируются в `.roo/commands/` и дополняются хуками `devkit validate` и `devkit gate`. Это гарантирует, что агент не сможет перейти к реализации, пока архитектурные артефакты не пройдут валидацию.
+| Режим | Slug | Назначение |
+|-------|------|------------|
+| **Devkit Coder** | `devkit-coder` | Основной режим разработки. Честная и верифицируемая разработка: проверяй зависимости, не предполагай, сначала читай потом пиши. 17 правил честной разработки. |
+| **Devkit Research** | `devkit-research` | Анализ идеи, конкуренты, feasibility. Используй поиск и свои знания. Не пиши код. |
+| **Devkit Architect** | `devkit-architect` | Создание спецификаций, архитектурных решений, ADR, RFC. Не переходи к коду. |
+
+Файл `.roomodes` пишется в YAML-формате (предпочтительный для Roo Code с версии 3.18). При повторном `devkit init` он обновляется из шаблона.
+
+#### `.roo/` — конфигурация для Roo Code:
+При инициализации из шаблона `DevKit/.roo/` копируется полная структура:
+- **`mcp.json`** — предустановленные MCP-серверы: `memory` (память между сессиями), `context7` (документация библиотек)
+- **`commands/*.md`** — слэш-команды для всех уровней методологии (`/devkit-init`, `/research-kit`, `/speckit.plan`, ...)
+- **`rules-devkit-coder/rules.md`** — 17 правил режима Devkit Coder
+
+Все speckit-команды автоматически дополняются хуками `devkit validate`, `devkit impact`, `devkit coverage`. Это гарантирует, что агент не сможет перейти к реализации, пока архитектурные артефакты не пройдут валидацию.
+
+---
+
+## Обновление проекта (Upgrade)
+
+Если вы начинали проект с предыдущей версии DevKit и хотите применить изменения:
+
+```bash
+# Убедитесь, что используется актуальная сборка из вашего форка
+cd DevKit/cli && npm install && npm run build
+
+# Запустите init повторно — он безопасен (idempotent)
+devkit init
+
+# Результат:
+# - .roomodes будет обновлён из шаблона (3 режима вместо старых SpecKit-режимов)
+# - .roo/ пополнится новыми файлами (mcp.json, правила devkit-coder)
+# - .devkit/ останется без изменений
+```
+
+Что происходит при повторном `devkit init`:
+
+| Что | Поведение |
+|-----|-----------|
+| `.roomodes` | **Обновляется** — перезаписывается из шаблона `DevKit/.roomodes` (YAML, 3 режима) |
+| `.roo/` | **Дополняется** — новые файлы добавляются, существующие не трогаются |
+| `.devkit/` | **Пропускается** — существующие артефакты не изменяются |
+| `.agent/skills/` | **Пропускается** — уже установленные навыки не перезаписываются |
+| Speckit-команды | **Обновляются** — DevKit-хуки инжектятся в существующие файлы |
+
+Если вы вручную меняли `.roomodes` и не хотите их терять — сохраните копию перед `devkit init`, затем примените свои изменения поверх обновлённого файла.
