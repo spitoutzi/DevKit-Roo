@@ -30,12 +30,14 @@ describe('scaffoldDevkit', () => {
         expect(existsSync(join(TEST_DIR, '.devkit', 'STATUS.md'))).toBe(true);
     });
 
-    it('is idempotent — does not overwrite existing files', () => {
+    it('is idempotent — does not overwrite existing files (except .roomodes)', () => {
         const first = scaffoldDevkit(TEST_DIR, 'greenfield');
         const second = scaffoldDevkit(TEST_DIR, 'greenfield');
 
         expect(first.created.length).toBeGreaterThan(0);
-        expect(second.created.length).toBe(0);
-        expect(second.skipped.length).toBe(first.created.length);
+        // .roomodes is always overwritten (template is source of truth)
+        expect(second.created.filter(c => c !== '.roomodes (updated)').length).toBe(0);
+        // Everything else should be skipped
+        expect(second.skipped.length).toBeGreaterThan(0);
     });
 });

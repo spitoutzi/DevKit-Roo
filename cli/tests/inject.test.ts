@@ -200,19 +200,14 @@ describe('injectDevkitHooks', () => {
         expect(starts?.length).toBe(2);
     });
 
-    it('creates .roomodes for Roo Code', () => {
+    it('does not generate .roomodes (handled by scaffold)', () => {
         // Ensure .roo/commands exists to trigger roo agent detection
         mkdirSync(join(TEST_DIR, '.roo', 'commands'), { recursive: true });
         
         injectDevkitHooks(TEST_DIR);
 
+        // inject no longer generates .roomodes — scaffold handles it
         const roomodesPath = join(TEST_DIR, '.roomodes');
-        expect(existsSync(roomodesPath)).toBe(true);
-
-        const roomodes = JSON.parse(readFileSync(roomodesPath, 'utf-8'));
-        expect(roomodes.customModes).toBeDefined();
-        const slugs = roomodes.customModes.map((m: any) => m.slug);
-        expect(slugs).toContain('speckit-architect');
-        expect(slugs).toContain('speckit-developer');
+        expect(existsSync(roomodesPath)).toBe(false);
     });
 });

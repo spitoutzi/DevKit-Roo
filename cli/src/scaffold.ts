@@ -55,32 +55,86 @@ function getSkillsSourceDir(): string | null {
     return null;
 }
 
+/**
+ * Recursively copy directory contents from src to dest.
+ * - Creates subdirectories as needed
+ * - Copies files that don't exist yet (won't overwrite)
+ * - Appends relative paths of copied files to the `copied` array
+ */
+function copyDirContents(src: string, dest: string, baseDir: string, copied: string[]): void {
+    if (!existsSync(src) || !existsSync(dest)) return;
+
+    const entries = readdirSync(src, { withFileTypes: true });
+
+    for (const entry of entries) {
+        const srcPath = join(src, entry.name);
+        const destPath = join(dest, entry.name);
+        // Relative path from cwd for reporting
+        const relativePath = destPath.replace(baseDir + '/', '');
+
+        if (entry.isDirectory()) {
+            if (!existsSync(destPath)) {
+                mkdirSync(destPath);
+            }
+            copyDirContents(srcPath, destPath, baseDir, copied);
+        } else {
+            if (!existsSync(destPath)) {
+                cpSync(srcPath, destPath);
+                copied.push(relativePath);
+            }
+        }
+    }
+}
+
 export function scaffoldDevkit(cwd: string, mode: string): ScaffoldResult {
     const created: string[] = [];
     const skipped: string[] = [];
     let skillsInstalled = 0;
 
-    // Install Roo configurations (Honest Coder)
-    const rooConfigs = [
-        { src: '.roomodes', dest: '.roomodes' },
-        { src: '.roo/rules-honest-coder/rules.md', dest: '.roo/rules-honest-coder/rules.md' }
-    ];
+    // Install Roo configurations: .roo/ (directory) + .roomodes (file)
+    const devkitDir = join(cwd, 'DevKit');
 
-    for (const config of rooConfigs) {
-        const srcPath = join(cwd, 'DevKit', config.src);
-        const destPath = join(cwd, config.dest);
+    // 1. Copy entire DevKit/.roo/ → .roo/ recursively
+    const rooTemplateDir = join(devkitDir, '.roo');
+    const rooDestDir = join(cwd, '.roo');
 
-        if (existsSync(srcPath)) {
-            if (!existsSync(destPath)) {
-                const destDir = dirname(destPath);
-                if (!existsSync(destDir)) {
-                    mkdirSync(destDir, { recursive: true });
-                }
-                cpSync(srcPath, destPath);
-                created.push(config.dest);
-            } else {
-                skipped.push(config.dest);
+    if (existsSync(rooTemplateDir)) {
+        if (!existsSync(rooDestDir)) {
+            mkdirSync(rooDestDir, { recursive: true });
+            created.push('.roo/');
+        }
+
+        // Copy files from template → dest (overwrites only matching files, preserves others)
+        const copiedRooFiles: string[] = [];
+        copyDirContents(rooTemplateDir, rooDestDir, cwd, copiedRooFiles);
+
+        if (copiedRooFiles.length > 0) {
+            for (const f of copiedRooFiles) {
+                created.push(f);
             }
+        }
+    } else {
+        // Template .roo/ not found — create minimal directory if needed
+        if (!existsSync(rooDestDir)) {
+            mkdirSync(rooDestDir, { recursive: true });
+            created.push('.roo/');
+        } else {
+            skipped.push('.roo/');
+        }
+    }
+
+    // 2. Copy DevKit/.roomodes → .roomodes (always overwrite — template is source of truth)
+    const roomodesSrc = join(devkitDir, '.roomodes');
+    const roomodesDest = join(cwd, '.roomodes');
+
+    if (existsSync(roomodesSrc)) {
+        if (!existsSync(roomodesDest)) {
+            cpSync(roomodesSrc, roomodesDest);
+            created.push('.roomodes');
+        } else {
+            // Overwrite with template version
+            cpSync(roomodesSrc, roomodesDest);
+            created.push('.roomodes (updated)');
         }
     }
 

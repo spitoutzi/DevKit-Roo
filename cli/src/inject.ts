@@ -267,56 +267,7 @@ export function injectDevkitHooks(cwd: string, opts?: { force?: boolean }): Inje
         }
     }
 
-    // Generate .roomodes for Roo Code if roo is active
-    if (activeAgents.includes('roo')) {
-        generateRooModes(cwd);
-    }
-
     return result;
-}
-
-/**
- * Generates or updates .roomodes file to include speckit commands as custom modes.
- */
-function generateRooModes(cwd: string): void {
-    const roomodesPath = join(cwd, '.roomodes');
-    
-    const devkitCustomModes = [
-        {
-            slug: "speckit-architect",
-            name: "SpecKit Architect",
-            roleDefinition: "You are an expert software architect focused on technical invariants and system design. Your goal is to ensure that all specifications align with the project's technical constitution.",
-            groups: ["read", "edit", "browser", "command", "mcp"]
-        },
-        {
-            slug: "speckit-developer",
-            name: "SpecKit Developer",
-            roleDefinition: "You are a senior developer focused on implementing features according to specifications while maintaining technical invariants. You use DevKit hooks to validate your progress.",
-            groups: ["read", "edit", "browser", "command", "mcp"]
-        }
-    ];
-
-    let existingModes: any = { customModes: [] };
-    if (existsSync(roomodesPath)) {
-        try {
-            existingModes = JSON.parse(readFileSync(roomodesPath, 'utf-8'));
-        } catch (e) {
-            // If invalid JSON, we'll overwrite
-        }
-    }
-
-    if (!existingModes.customModes) existingModes.customModes = [];
-
-    for (const mode of devkitCustomModes) {
-        const index = existingModes.customModes.findIndex((m: any) => m.slug === mode.slug);
-        if (index !== -1) {
-            existingModes.customModes[index] = { ...existingModes.customModes[index], ...mode };
-        } else {
-            existingModes.customModes.push(mode);
-        }
-    }
-
-    writeFileSync(roomodesPath, JSON.stringify(existingModes, null, 2), 'utf-8');
 }
 
 /**
