@@ -84,10 +84,11 @@ function resolveRoomodesSrc(cwd: string): string | null {
 /**
  * Recursively copy directory contents from src to dest.
  * - Creates subdirectories as needed
- * - Copies files that don't exist yet (won't overwrite)
- * - Appends relative paths of copied files to the `copied` array
+ * - If `overwrite` is true, always copies files (reports as 'updated' if existed)
+ * - If `overwrite` is false, only copies files that don't exist yet
+ * - Appends relative paths to the `copied` array
  */
-function copyDirContents(src: string, dest: string, baseDir: string, copied: string[]): void {
+function copyDirContents(src: string, dest: string, baseDir: string, copied: string[], overwrite = false): void {
     if (!existsSync(src) || !existsSync(dest)) return;
 
     const entries = readdirSync(src, { withFileTypes: true });
@@ -102,9 +103,9 @@ function copyDirContents(src: string, dest: string, baseDir: string, copied: str
             if (!existsSync(destPath)) {
                 mkdirSync(destPath);
             }
-            copyDirContents(srcPath, destPath, baseDir, copied);
+            copyDirContents(srcPath, destPath, baseDir, copied, overwrite);
         } else {
-            if (!existsSync(destPath)) {
+            if (overwrite || !existsSync(destPath)) {
                 cpSync(srcPath, destPath);
                 copied.push(relativePath);
             }
@@ -120,7 +121,7 @@ export function scaffoldDevkit(cwd: string, mode: string): ScaffoldResult {
     // Install Roo configurations: .roo/ (directory) + .roomodes (file)
     const devkitDir = join(cwd, 'DevKit');
 
-    // 1. Copy entire DevKit/.roo/ → .roo/ recursively
+    // 1. Copy entire DevKit/.roo/ → .roo/ recursively (overwrite — template is source of truth)
     const rooTemplateDir = join(devkitDir, '.roo');
     const rooDestDir = join(cwd, '.roo');
 
@@ -130,9 +131,9 @@ export function scaffoldDevkit(cwd: string, mode: string): ScaffoldResult {
             created.push('.roo/');
         }
 
-        // Copy files from template → dest (overwrites only matching files, preserves others)
+        // Copy all files from template (overwrites existing — template is source of truth)
         const copiedRooFiles: string[] = [];
-        copyDirContents(rooTemplateDir, rooDestDir, cwd, copiedRooFiles);
+        copyDirContents(rooTemplateDir, rooDestDir, cwd, copiedRooFiles, true);
 
         if (copiedRooFiles.length > 0) {
             for (const f of copiedRooFiles) {
