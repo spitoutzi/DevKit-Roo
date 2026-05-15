@@ -1,4 +1,5 @@
 node_modules/
 dist/
+DevKit/
 .test-tmp-*
 *.tgz

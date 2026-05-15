@@ -30,29 +30,31 @@ describe('scaffoldDevkit', () => {
         expect(existsSync(join(TEST_DIR, '.devkit', 'STATUS.md'))).toBe(true);
     });
 
-    it('is idempotent — does not overwrite existing files on re-run', () => {
+    it('is idempotent — only .roomodes is overwritten on re-run', () => {
         const first = scaffoldDevkit(TEST_DIR, 'greenfield');
         const second = scaffoldDevkit(TEST_DIR, 'greenfield');
 
         expect(first.created.length).toBeGreaterThan(0);
-        // Second run should create nothing (everything already exists)
-        expect(second.created.length).toBe(0);
-        // Everything should be skipped
+        // Second run should only update .roomodes (template is source of truth)
+        expect(second.created).toEqual(['.roomodes (updated)']);
+        // Everything else should be skipped
         expect(second.skipped.length).toBeGreaterThan(0);
     });
 
-    it('creates minimal .roomodes when DevKit template is not bundled', () => {
-        // TEST_DIR does not have DevKit/ — resolveRoomodesSrc returns null
+    it('copies .roomodes from bundled DevKit/ when no cwd/DevKit/ (npm-install mode)', () => {
+        // TEST_DIR has no DevKit/ — resolveRoomodesSrc falls back to
+        // <package-root>/DevKit/.roomodes (cli/DevKit/.roomodes after build)
         const result = scaffoldDevkit(TEST_DIR, 'greenfield');
 
-        expect(result.created).toContain('.roomodes (minimal)');
+        expect(result.created).toContain('.roomodes');
         expect(existsSync(join(TEST_DIR, '.roomodes'))).toBe(true);
 
         const content = readFileSync(join(TEST_DIR, '.roomodes'), 'utf-8');
-        expect(content).toContain('customModes: []');
+        // File should be the real DevKit template, not minimal
+        expect(content).toContain('devkit-coder');
     });
 
-    it('copies .roomodes from DevKit/ in cwd when available', () => {
+    it('prefers cwd/DevKit/.roomodes over bundled (development mode)', () => {
         // Simulate repo-root layout: set up DevKit/.roomodes in TEST_DIR
         const devkitDir = join(TEST_DIR, 'DevKit');
         mkdirSync(devkitDir, { recursive: true });
@@ -68,15 +70,13 @@ describe('scaffoldDevkit', () => {
         expect(content).toBe(customRoomodes);
     });
 
-    it('overwrites .roomodes on re-run when template exists', () => {
-        // First run with a simple template
-        const devkitDir = join(TEST_DIR, 'DevKit');
-        mkdirSync(devkitDir, { recursive: true });
-        writeFileSync(join(devkitDir, '.roomodes'), 'customModes: []\n', 'utf-8');
-
+    it('overwrites .roomodes on re-run when template changes', () => {
+        // First run with bundled template
         scaffoldDevkit(TEST_DIR, 'greenfield');
 
-        // Update the template
+        // Now place a cwd/DevKit/.roomodes with different content (takes priority)
+        const devkitDir = join(TEST_DIR, 'DevKit');
+        mkdirSync(devkitDir, { recursive: true });
         writeFileSync(join(devkitDir, '.roomodes'), 'customModes:\n  - slug: new-mode\n    name: New\n    roleDefinition: test\n    groups:\n      - read\n', 'utf-8');
 
         const result = scaffoldDevkit(TEST_DIR, 'greenfield');
